@@ -15,6 +15,7 @@ const cursor = { active: false, x: 0, y: 0 };
 
 const lines: { x: number; y: number }[][] = [];
 let currentLine: { x: number; y: number }[] | null = null;
+const redoStack: { x: number; y: number }[][] = [];
 
 function notifyChange() {
   canvas.dispatchEvent(new Event("drawing-changed"));
@@ -22,6 +23,7 @@ function notifyChange() {
   // debug output
   console.clear();
   console.log("Lines Array: ", JSON.stringify(lines));
+  console.log("Redo Stack: ", JSON.stringify(redoStack));
 }
 
 function redraw() {
@@ -62,6 +64,8 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
+  redoStack.length = 0; // Clear redo stack on new action
+
   currentLine = [];
   lines.push(currentLine);
   currentLine.push({ x: cursor.x, y: cursor.y });
@@ -93,7 +97,9 @@ undoButton.innerHTML = "Undo";
 document.body.append(undoButton);
 
 undoButton.addEventListener("click", () => {
-  lines.length = 0;
+  if (lines.length === 0) return;
+  const undoneLine = lines.pop()!;
+  redoStack.push(undoneLine);
   currentLine = null;
   notifyChange();
 });
@@ -103,7 +109,9 @@ redoButton.innerHTML = "Redo";
 document.body.append(redoButton);
 
 redoButton.addEventListener("click", () => {
-  lines.length = 0;
+  if (redoStack.length === 0) return;
+  const redoneLine = redoStack.pop()!;
+  lines.push(redoneLine);
   currentLine = null;
   notifyChange();
 });
@@ -114,6 +122,7 @@ document.body.append(clearButton);
 
 clearButton.addEventListener("click", () => {
   lines.length = 0;
+  redoStack.length = 0;
   currentLine = null;
   notifyChange();
 });
