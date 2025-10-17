@@ -88,8 +88,28 @@ canvas.addEventListener("mouseup", (_e) => {
 
 document.body.append(document.createElement("br"));
 
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "Undo";
+document.body.append(undoButton);
+
+undoButton.addEventListener("click", () => {
+  lines.length = 0;
+  currentLine = null;
+  notifyChange();
+});
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "Redo";
+document.body.append(redoButton);
+
+redoButton.addEventListener("click", () => {
+  lines.length = 0;
+  currentLine = null;
+  notifyChange();
+});
+
 const clearButton = document.createElement("button");
-clearButton.innerHTML = "clear";
+clearButton.innerHTML = "Clear";
 document.body.append(clearButton);
 
 clearButton.addEventListener("click", () => {
