@@ -14,9 +14,8 @@ const ctx = canvas.getContext("2d")!;
 
 const cursor = { active: false, x: 0, y: 0 };
 
-// draft
 const linesDraw: Draw[] = [];
-const redoStackDraft: Draw[] = [];
+const redoStack: Draw[] = [];
 let currentCommand: Draggable | null = null;
 
 // ========== Display Commands ========== //
@@ -28,13 +27,10 @@ interface Draggable extends Draw {
   drag(x: number, y: number): void;
 }
 
-class drawLines implements Draggable {
+class DrawLines implements Draggable {
   points: { x: number; y: number }[] = [];
 
-  constructor(
-    startY: number,
-    startX: number,
-  ) {
+  constructor(startX: number, startY: number) {
     this.points.push({ x: startX, y: startY });
   }
 
@@ -43,22 +39,27 @@ class drawLines implements Draggable {
     this.points.push({ x, y });
   }
 
-  isEmpty() {
-    return this.points.length === 0;
-  }
-
   display(ctx: CanvasRenderingContext2D) {
+    if (this.points.length === 0) return;
+
     ctx.lineWidth = 3;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = "#222";
     ctx.fillStyle = "#222";
 
+    if (this.points.length === 1) {
+      const p = this.points[0];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+
     ctx.beginPath();
-    const { x, y } = this.points[0];
-    ctx.moveTo(x, y);
-    for (const { x, y } of this.points) {
-      ctx.lineTo(x, y);
+    ctx.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      ctx.lineTo(this.points[i].x, this.points[i].y);
     }
     ctx.stroke();
   }
@@ -70,7 +71,7 @@ function notifyChange() {
   // debug output
   console.clear();
   console.log("Lines: ", linesDraw);
-  console.log("Redo Stack: ", redoStackDraft);
+  console.log("Redo Stack: ", redoStack);
 }
 
 function redraw() {
@@ -89,9 +90,9 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  redoStackDraft.length = 0; // Clear redo stack on new actions
+  redoStack.length = 0; // Clear redo stack on new actions
 
-  currentCommand = new drawLines(cursor.x, cursor.y);
+  currentCommand = new DrawLines(cursor.x, cursor.y);
   linesDraw.push(currentCommand);
 
   notifyChange();
@@ -124,7 +125,7 @@ document.body.append(undoButton);
 undoButton.addEventListener("click", () => {
   if (linesDraw.length === 0) return;
   const undoneLine = linesDraw.pop()!;
-  redoStackDraft.push(undoneLine);
+  redoStack.push(undoneLine);
   currentCommand = null;
   notifyChange();
 });
@@ -134,8 +135,8 @@ redoButton.innerHTML = "Redo";
 document.body.append(redoButton);
 
 redoButton.addEventListener("click", () => {
-  if (redoStackDraft.length === 0) return;
-  const redoneLine = redoStackDraft.pop()!;
+  if (redoStack.length === 0) return;
+  const redoneLine = redoStack.pop()!;
   linesDraw.push(redoneLine);
   currentCommand = null;
   notifyChange();
@@ -147,7 +148,7 @@ document.body.append(clearButton);
 
 clearButton.addEventListener("click", () => {
   linesDraw.length = 0;
-  redoStackDraft.length = 0;
+  redoStack.length = 0;
   currentCommand = null;
   notifyChange();
 });
