@@ -118,6 +118,7 @@ canvas.addEventListener("mouseup", (_e) => {
 // ========== UI Controls ========== //
 document.body.append(document.createElement("br"));
 
+// UNDO BTN
 const undoButton = document.createElement("button");
 undoButton.innerHTML = "Undo";
 document.body.append(undoButton);
@@ -130,6 +131,7 @@ undoButton.addEventListener("click", () => {
   notifyChange();
 });
 
+// REDO BTN
 const redoButton = document.createElement("button");
 redoButton.innerHTML = "Redo";
 document.body.append(redoButton);
@@ -142,6 +144,7 @@ redoButton.addEventListener("click", () => {
   notifyChange();
 });
 
+// CLEAR BTN
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "Clear";
 document.body.append(clearButton);
@@ -151,4 +154,24 @@ clearButton.addEventListener("click", () => {
   redoStack.length = 0;
   currentCommand = null;
   notifyChange();
+});
+
+document.body.append(document.createElement("br"));
+
+// THIN MARKER BTN
+const thinButton = document.createElement("button");
+thinButton.innerHTML = "Thin Marker";
+document.body.append(thinButton);
+
+thinButton.addEventListener("click", () => {
+  console.log("Thin Marker Selected");
+});
+
+// THICK MARKER BTN
+const thickButton = document.createElement("button");
+thickButton.innerHTML = "Thick Marker";
+document.body.append(thickButton);
+
+thickButton.addEventListener("click", () => {
+  console.log("Thick Marker Selected");
 });
