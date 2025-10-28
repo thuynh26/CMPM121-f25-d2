@@ -10,6 +10,33 @@ canvas.width = 256;
 canvas.height = 256;
 document.body.append(canvas);
 
+document.body.append(document.createElement("br"));
+
+// UNDO, REDO, AND CLEAR BTN
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "Undo";
+document.body.append(undoButton);
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "Redo";
+document.body.append(redoButton);
+
+const clearButton = document.createElement("button");
+clearButton.innerHTML = "Clear";
+document.body.append(clearButton);
+
+document.body.append(document.createElement("br"));
+
+// MARKER TOOLS BTN
+const thinButton = document.createElement("button");
+thinButton.innerHTML = "Thin Marker";
+document.body.append(thinButton);
+
+const thickButton = document.createElement("button");
+thickButton.innerHTML = "Thick Marker";
+document.body.append(thickButton);
+
+// ========== Global States ========== //
 const ctx = canvas.getContext("2d")!;
 
 const cursor = { active: false, x: 0, y: 0 };
@@ -17,6 +44,39 @@ const cursor = { active: false, x: 0, y: 0 };
 const linesDraw: Draw[] = [];
 const redoStack: Draw[] = [];
 let currentCommand: Draggable | null = null;
+
+interface DrawStyle {
+  lineWidth: number;
+  strokeStyle: string;
+  fillStyle: string;
+  dotRadius: number;
+}
+
+const THIN: DrawStyle = {
+  lineWidth: 2,
+  strokeStyle: "black",
+  fillStyle: "black",
+  dotRadius: 1,
+};
+
+const THICK: DrawStyle = {
+  lineWidth: 8,
+  strokeStyle: "black",
+  fillStyle: "black",
+  dotRadius: 4,
+};
+
+// set default tool as thin tool
+let currentTool: DrawStyle = THIN;
+
+function setTool(btn: HTMLButtonElement) {
+  // Reset styles for all buttons
+  [thinButton, thickButton].forEach((b) => b.classList.remove("active-tool"));
+  // Highlight the selected button
+  btn.classList.add("active-tool");
+}
+
+setTool(thinButton);
 
 // ========== Display Commands ========== //
 interface Draw {
@@ -30,7 +90,7 @@ interface Draggable extends Draw {
 class DrawLines implements Draggable {
   points: { x: number; y: number }[] = [];
 
-  constructor(startX: number, startY: number) {
+  constructor(startX: number, startY: number, private style: DrawStyle) {
     this.points.push({ x: startX, y: startY });
   }
 
@@ -42,22 +102,23 @@ class DrawLines implements Draggable {
   display(ctx: CanvasRenderingContext2D) {
     if (this.points.length === 0) return;
 
-    ctx.lineWidth = 3;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#222";
-    ctx.fillStyle = "#222";
+    ctx.lineWidth = this.style.lineWidth;
+    ctx.strokeStyle = this.style.strokeStyle;
+    ctx.fillStyle = this.style.fillStyle;
 
     if (this.points.length === 1) {
       const p = this.points[0];
       ctx.beginPath();
-      ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, this.style.dotRadius, 0, Math.PI * 2);
       ctx.fill();
       return;
     }
 
     ctx.beginPath();
-    ctx.moveTo(this.points[0].x, this.points[0].y);
+    const { x, y } = this.points[0];
+    ctx.moveTo(x, y);
     for (let i = 1; i < this.points.length; i++) {
       ctx.lineTo(this.points[i].x, this.points[i].y);
     }
@@ -92,7 +153,7 @@ canvas.addEventListener("mousedown", (e) => {
 
   redoStack.length = 0; // Clear redo stack on new actions
 
-  currentCommand = new DrawLines(cursor.x, cursor.y);
+  currentCommand = new DrawLines(cursor.x, cursor.y, currentTool);
   linesDraw.push(currentCommand);
 
   notifyChange();
@@ -116,13 +177,8 @@ canvas.addEventListener("mouseup", (_e) => {
 });
 
 // ========== UI Controls ========== //
-document.body.append(document.createElement("br"));
 
 // UNDO BTN
-const undoButton = document.createElement("button");
-undoButton.innerHTML = "Undo";
-document.body.append(undoButton);
-
 undoButton.addEventListener("click", () => {
   if (linesDraw.length === 0) return;
   const undoneLine = linesDraw.pop()!;
@@ -132,10 +188,6 @@ undoButton.addEventListener("click", () => {
 });
 
 // REDO BTN
-const redoButton = document.createElement("button");
-redoButton.innerHTML = "Redo";
-document.body.append(redoButton);
-
 redoButton.addEventListener("click", () => {
   if (redoStack.length === 0) return;
   const redoneLine = redoStack.pop()!;
@@ -145,10 +197,6 @@ redoButton.addEventListener("click", () => {
 });
 
 // CLEAR BTN
-const clearButton = document.createElement("button");
-clearButton.innerHTML = "Clear";
-document.body.append(clearButton);
-
 clearButton.addEventListener("click", () => {
   linesDraw.length = 0;
   redoStack.length = 0;
@@ -159,19 +207,17 @@ clearButton.addEventListener("click", () => {
 document.body.append(document.createElement("br"));
 
 // THIN MARKER BTN
-const thinButton = document.createElement("button");
-thinButton.innerHTML = "Thin Marker";
-document.body.append(thinButton);
-
 thinButton.addEventListener("click", () => {
+  currentTool = THIN;
+  setTool(thinButton);
+
   console.log("Thin Marker Selected");
 });
 
 // THICK MARKER BTN
-const thickButton = document.createElement("button");
-thickButton.innerHTML = "Thick Marker";
-document.body.append(thickButton);
-
 thickButton.addEventListener("click", () => {
+  currentTool = THICK;
+  setTool(thickButton);
+
   console.log("Thick Marker Selected");
 });
