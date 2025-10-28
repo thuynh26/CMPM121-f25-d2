@@ -8,6 +8,7 @@ document.body.innerHTML = `
 const canvas = document.createElement("canvas");
 canvas.width = 256;
 canvas.height = 256;
+canvas.style.cursor = "none";
 document.body.append(canvas);
 
 document.body.append(document.createElement("br"));
@@ -125,9 +126,10 @@ class DrawLines implements Draggable {
     ctx.stroke();
   }
 }
+
 // ========== Functions ========== //
-function notifyChange() {
-  canvas.dispatchEvent(new Event("drawing-changed"));
+function notifyChange(name: string) {
+  canvas.dispatchEvent(new Event(name));
 
   // debug output
   console.clear();
@@ -145,6 +147,7 @@ function redraw() {
 
 // ========== Event Listeners ========== //
 canvas.addEventListener("drawing-changed", redraw);
+canvas.addEventListener("cursor-changed", redraw);
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
@@ -156,9 +159,10 @@ canvas.addEventListener("mousedown", (e) => {
   currentCommand = new DrawLines(cursor.x, cursor.y, currentTool);
   linesDraw.push(currentCommand);
 
-  notifyChange();
+  notifyChange("drawing-changed");
 });
 
+// MIGHT NEED to MODIFY for tool preview
 canvas.addEventListener("mousemove", (e) => {
   if (!cursor.active || !currentCommand) return;
   cursor.x = e.offsetX;
@@ -166,14 +170,14 @@ canvas.addEventListener("mousemove", (e) => {
 
   currentCommand.drag(cursor.x, cursor.y);
 
-  notifyChange();
+  notifyChange("drawing-changed");
 });
 
 canvas.addEventListener("mouseup", (_e) => {
   cursor.active = false;
   currentCommand = null;
 
-  notifyChange();
+  notifyChange("drawing-changed");
 });
 
 // ========== UI Controls ========== //
@@ -184,7 +188,7 @@ undoButton.addEventListener("click", () => {
   const undoneLine = linesDraw.pop()!;
   redoStack.push(undoneLine);
   currentCommand = null;
-  notifyChange();
+  notifyChange("drawing-changed");
 });
 
 // REDO BTN
@@ -193,7 +197,7 @@ redoButton.addEventListener("click", () => {
   const redoneLine = redoStack.pop()!;
   linesDraw.push(redoneLine);
   currentCommand = null;
-  notifyChange();
+  notifyChange("drawing-changed");
 });
 
 // CLEAR BTN
@@ -201,7 +205,7 @@ clearButton.addEventListener("click", () => {
   linesDraw.length = 0;
   redoStack.length = 0;
   currentCommand = null;
-  notifyChange();
+  notifyChange("drawing-changed");
 });
 
 document.body.append(document.createElement("br"));
