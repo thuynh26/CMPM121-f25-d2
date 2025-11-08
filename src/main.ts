@@ -37,6 +37,21 @@ const thickButton = document.createElement("button");
 thickButton.innerHTML = "Thick Marker";
 document.body.append(thickButton);
 
+document.body.append(document.createElement("br"));
+
+// STICKER BTNS
+const emojiButton1 = document.createElement("button");
+emojiButton1.innerHTML = "🍓";
+document.body.append(emojiButton1);
+
+const emojiButton2 = document.createElement("button");
+emojiButton2.innerHTML = "🍏";
+document.body.append(emojiButton2);
+
+const emojiButton3 = document.createElement("button");
+emojiButton3.innerHTML = "🍍";
+document.body.append(emojiButton3);
+
 // ========== Global States ========== //
 const ctx = canvas.getContext("2d")!;
 
@@ -45,7 +60,9 @@ const cursor = { active: false, x: 0, y: 0 };
 const linesDraw: Draw[] = [];
 const redoStack: Draw[] = [];
 let currentCommand: Draggable | null = null;
-let preview: ToolPreview | null = null; // NEW
+
+let preview: Draw | null = null;
+let currentSticker: string | null = null;
 
 interface DrawStyle {
   lineWidth: number;
@@ -142,6 +159,20 @@ class ToolPreview implements Draw {
   }
 }
 
+class StickerPreview implements Draw {
+  constructor(private x: number, private y: number, private emoji: string) {}
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.font = "28px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.globalAlpha = 0.7;
+    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.restore();
+  }
+}
+
 // ========== Functions ========== //
 function notifyChange(name: string) {
   canvas.dispatchEvent(new Event(name));
@@ -162,15 +193,29 @@ function redraw() {
   if (preview) preview.display(ctx);
 }
 
+function updatePreview() {
+  // if drawing, no preview
+  if (cursor.active) {
+    preview = null;
+    return;
+  }
+
+  if (currentSticker) {
+    preview = new StickerPreview(cursor.x, cursor.y, currentSticker);
+  } else {
+    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
+  }
+}
+
 // ========== Event Listeners ========== //
 canvas.addEventListener("drawing-changed", redraw);
-// NOT USED:
-// canvas.addEventListener("cursor-changed", redraw);
 canvas.addEventListener("tool-moved", redraw);
 
 canvas.addEventListener("mouseenter", (e) => {
+  cursor.x = e.offsetX;
+  cursor.y = e.offsetY;
   if (!cursor.active) {
-    preview = new ToolPreview(e.offsetX, e.offsetY, currentTool);
+    updatePreview();
     notifyChange("tool-moved");
   }
 });
@@ -195,7 +240,7 @@ canvas.addEventListener("mousemove", (e) => {
 
   // update preview position if not drawing
   if (!cursor.active) {
-    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
+    updatePreview();
     notifyChange("tool-moved");
     return;
   }
@@ -211,7 +256,7 @@ canvas.addEventListener("mouseup", (_e) => {
   currentCommand = null;
 
   // resume showing preview when not drawing
-  preview = new ToolPreview(cursor.x, cursor.y, currentTool);
+  updatePreview();
   notifyChange("drawing-changed");
 });
 
@@ -269,4 +314,33 @@ thickButton.addEventListener("click", () => {
   }
 
   console.log("Thick Marker Selected");
+});
+
+// STICKER BTN 1
+emojiButton1.addEventListener("click", () => {
+  currentSticker = "🍓";
+  updatePreview();
+  notifyChange("tool-moved");
+
+  console.log("Sticker 1 Selected");
+});
+
+// STICKER BTN 2
+emojiButton2.addEventListener("click", () => {
+  currentSticker = "🍏";
+
+  updatePreview();
+  notifyChange("tool-moved");
+
+  console.log("Sticker 2 Selected");
+});
+
+// STICKER BTN 3
+emojiButton3.addEventListener("click", () => {
+  currentSticker = "🍍";
+
+  updatePreview();
+  notifyChange("tool-moved");
+
+  console.log("Sticker 2 Selected");
 });
