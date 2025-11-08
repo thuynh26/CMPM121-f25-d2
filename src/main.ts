@@ -45,6 +45,7 @@ const cursor = { active: false, x: 0, y: 0 };
 const linesDraw: Draw[] = [];
 const redoStack: Draw[] = [];
 let currentCommand: Draggable | null = null;
+let preview: ToolPreview | null = null; // NEW
 
 interface DrawStyle {
   lineWidth: number;
@@ -127,6 +128,20 @@ class DrawLines implements Draggable {
   }
 }
 
+class ToolPreview implements Draw {
+  constructor(private x: number, private y: number, private style: DrawStyle) {}
+
+  display(ctx: CanvasRenderingContext2D) {
+    const dotRadius = Math.max(1, this.style.lineWidth / 2);
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    ctx.arc(this.x, this.y, dotRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 // ========== Functions ========== //
 function notifyChange(name: string) {
   canvas.dispatchEvent(new Event(name));
@@ -143,17 +158,29 @@ function redraw() {
   for (const draw of linesDraw) {
     draw.display(ctx);
   }
+
+  if (preview) preview.display(ctx);
 }
 
 // ========== Event Listeners ========== //
 canvas.addEventListener("drawing-changed", redraw);
-canvas.addEventListener("cursor-changed", redraw);
+// NOT USED:
+// canvas.addEventListener("cursor-changed", redraw);
+canvas.addEventListener("tool-moved", redraw);
+
+canvas.addEventListener("mouseenter", (e) => {
+  if (!cursor.active) {
+    preview = new ToolPreview(e.offsetX, e.offsetY, currentTool);
+    notifyChange("tool-moved");
+  }
+});
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
+  preview = null; // Remove preview when drawing
   redoStack.length = 0; // Clear redo stack on new actions
 
   currentCommand = new DrawLines(cursor.x, cursor.y, currentTool);
@@ -162,12 +189,18 @@ canvas.addEventListener("mousedown", (e) => {
   notifyChange("drawing-changed");
 });
 
-// MIGHT NEED to MODIFY for tool preview
 canvas.addEventListener("mousemove", (e) => {
-  if (!cursor.active || !currentCommand) return;
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
+  // update preview position if not drawing
+  if (!cursor.active) {
+    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
+    notifyChange("tool-moved");
+    return;
+  }
+
+  if (!currentCommand) return;
   currentCommand.drag(cursor.x, cursor.y);
 
   notifyChange("drawing-changed");
@@ -177,6 +210,8 @@ canvas.addEventListener("mouseup", (_e) => {
   cursor.active = false;
   currentCommand = null;
 
+  // resume showing preview when not drawing
+  preview = new ToolPreview(cursor.x, cursor.y, currentTool);
   notifyChange("drawing-changed");
 });
 
@@ -215,6 +250,11 @@ thinButton.addEventListener("click", () => {
   currentTool = THIN;
   setTool(thinButton);
 
+  if (preview) {
+    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
+    notifyChange("tool-moved");
+  }
+
   console.log("Thin Marker Selected");
 });
 
@@ -222,6 +262,11 @@ thinButton.addEventListener("click", () => {
 thickButton.addEventListener("click", () => {
   currentTool = THICK;
   setTool(thickButton);
+
+  if (preview) {
+    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
+    notifyChange("tool-moved");
+  }
 
   console.log("Thick Marker Selected");
 });
