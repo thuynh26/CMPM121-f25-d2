@@ -164,10 +164,26 @@ class StickerPreview implements Draw {
 
   display(ctx: CanvasRenderingContext2D) {
     ctx.save();
-    ctx.font = "28px system-ui";
+    ctx.font = "18px system-ui";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.globalAlpha = 0.7;
+    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.restore();
+  }
+}
+
+class Sticker implements Draggable {
+  constructor(public x: number, public y: number, public emoji: string) {}
+  drag(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.font = "18px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText(this.emoji, this.x, this.y);
     ctx.restore();
   }
@@ -214,10 +230,8 @@ canvas.addEventListener("tool-moved", redraw);
 canvas.addEventListener("mouseenter", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
-  if (!cursor.active) {
-    updatePreview();
-    notifyChange("tool-moved");
-  }
+  updatePreview();
+  notifyChange("tool-moved");
 });
 
 canvas.addEventListener("mousedown", (e) => {
@@ -228,7 +242,12 @@ canvas.addEventListener("mousedown", (e) => {
   preview = null; // Remove preview when drawing
   redoStack.length = 0; // Clear redo stack on new actions
 
-  currentCommand = new DrawLines(cursor.x, cursor.y, currentTool);
+  if (currentSticker) {
+    currentCommand = new Sticker(cursor.x, cursor.y, currentSticker);
+  } else {
+    currentCommand = new DrawLines(cursor.x, cursor.y, currentTool);
+  }
+
   linesDraw.push(currentCommand);
 
   notifyChange("drawing-changed");
@@ -294,11 +313,10 @@ document.body.append(document.createElement("br"));
 thinButton.addEventListener("click", () => {
   currentTool = THIN;
   setTool(thinButton);
+  currentSticker = null;
 
-  if (preview) {
-    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
-    notifyChange("tool-moved");
-  }
+  updatePreview();
+  notifyChange("tool-moved");
 
   console.log("Thin Marker Selected");
 });
@@ -307,18 +325,17 @@ thinButton.addEventListener("click", () => {
 thickButton.addEventListener("click", () => {
   currentTool = THICK;
   setTool(thickButton);
+  currentSticker = null;
 
-  if (preview) {
-    preview = new ToolPreview(cursor.x, cursor.y, currentTool);
-    notifyChange("tool-moved");
-  }
+  updatePreview();
+  notifyChange("tool-moved");
 
   console.log("Thick Marker Selected");
 });
 
 // STICKER BTN 1
 emojiButton1.addEventListener("click", () => {
-  currentSticker = "🍓";
+  currentSticker = emojiButton1.innerHTML;
   updatePreview();
   notifyChange("tool-moved");
 
@@ -327,7 +344,7 @@ emojiButton1.addEventListener("click", () => {
 
 // STICKER BTN 2
 emojiButton2.addEventListener("click", () => {
-  currentSticker = "🍏";
+  currentSticker = emojiButton2.innerHTML;
 
   updatePreview();
   notifyChange("tool-moved");
@@ -337,7 +354,7 @@ emojiButton2.addEventListener("click", () => {
 
 // STICKER BTN 3
 emojiButton3.addEventListener("click", () => {
-  currentSticker = "🍍";
+  currentSticker = emojiButton3.innerHTML;
 
   updatePreview();
   notifyChange("tool-moved");
